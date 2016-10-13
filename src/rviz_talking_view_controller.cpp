@@ -41,6 +41,7 @@
 #include "rviz/ogre_helpers/shape.h"
 #include "rviz/properties/float_property.h"
 #include "rviz/properties/vector_property.h"
+#include "rviz/properties/bool_property.h"
 #include "rviz/uniform_string_stream.h"
 #include "rviz/viewport_mouse_event.h"
 #include "rviz/load_resource.h"
@@ -71,6 +72,8 @@ TalkingViewController::TalkingViewController()
 
   focal_point_property_ = new VectorProperty( "Focal Point", Ogre::Vector3::ZERO, "The center point which the camera orbits.", this );
 
+  freeview_enabled_property_ = new BoolProperty("Freeview Enabled", true, "Enables mouse control of the reconstruction view.", this);
+
   pose_msg_.header.frame_id = "world";
   pose_msg_.child_frame_id = "rviz_view";
   pub_pose_ = nh_.advertise<geometry_msgs::TransformStamped>("rviz/view_pose", 1);
@@ -100,6 +103,7 @@ void TalkingViewController::reset()
   pitch_property_->setFloat( PITCH_START );
   distance_property_->setFloat( DISTANCE_START );
   focal_point_property_->setVector( Ogre::Vector3::ZERO );
+  freeview_enabled_property_->setBool(true);
 }
 
 void TalkingViewController::handleMouseEvent(ViewportMouseEvent& event)
@@ -278,13 +282,23 @@ void TalkingViewController::publishViewPose()
 
   Ogre::Quaternion cam_orientation = camera_->getOrientation();
   Ogre::Vector3 cam_pos = camera_->getPosition();
-  pose_msg_.transform.translation.x = cam_pos.x;
-  pose_msg_.transform.translation.y = cam_pos.y;
-  pose_msg_.transform.translation.z = cam_pos.z;
-  pose_msg_.transform.rotation.x = cam_orientation.x;
-  pose_msg_.transform.rotation.y = cam_orientation.y;
-  pose_msg_.transform.rotation.z = cam_orientation.z;
-  pose_msg_.transform.rotation.w = cam_orientation.w;
+  if (freeview_enabled_property_->getBool()) {
+    pose_msg_.transform.translation.x = cam_pos.x;
+    pose_msg_.transform.translation.y = cam_pos.y;
+    pose_msg_.transform.translation.z = cam_pos.z;
+    pose_msg_.transform.rotation.x = cam_orientation.x;
+    pose_msg_.transform.rotation.y = cam_orientation.y;
+    pose_msg_.transform.rotation.z = cam_orientation.z;
+    pose_msg_.transform.rotation.w = cam_orientation.w;
+  } else {
+    pose_msg_.transform.translation.x = 0;
+    pose_msg_.transform.translation.y = 0;
+    pose_msg_.transform.translation.z = 0;
+    pose_msg_.transform.rotation.x = 0;
+    pose_msg_.transform.rotation.y = 0;
+    pose_msg_.transform.rotation.z = 0;
+    pose_msg_.transform.rotation.w = 0;
+  }
 
   pub_pose_.publish(pose_msg_);
 }

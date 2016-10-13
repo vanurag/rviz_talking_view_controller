@@ -122,6 +122,7 @@ protected:
 
   Shape* focal_shape_;
   bool dragging_;
+  rviz::BoolProperty* freeview_enabled_property_;
 };
 
 }
