@@ -1,0 +1,7 @@
+<library path="librviz_talking_view_controller">
+  <class name="rviz_talking_view_controller/Talking" type="rviz_talking_view_controller::TalkingViewController" base_class_type="rviz::ViewController">
+    <description>
+      An orbit view controller for Rviz that publishes the current viewpoint as ROS message
+    </description>
+  </class>
+</library>
