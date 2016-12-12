@@ -36,6 +36,7 @@
 
 #include <ros/ros.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <std_msgs/Bool.h>
 
 #include "rviz/frame_position_tracking_view_controller.h"
 
@@ -118,11 +119,13 @@ protected:
 
   ros::NodeHandle nh_;
   geometry_msgs::TransformStamped pose_msg_;
+  std_msgs::Bool abort_msg_;
   ros::Publisher pub_pose_;
+  ros::Publisher pub_abort_;
 
   Shape* focal_shape_;
   bool dragging_;
-  rviz::BoolProperty* freeview_enabled_property_;
+  rviz::BoolProperty* freeview_enabled_property_, *cli_abort_property_;
 };
 
 }

@@ -73,10 +73,13 @@ TalkingViewController::TalkingViewController()
   focal_point_property_ = new VectorProperty( "Focal Point", Ogre::Vector3::ZERO, "The center point which the camera orbits.", this );
 
   freeview_enabled_property_ = new BoolProperty("Freeview Enabled", true, "Enables mouse control of the reconstruction view.", this);
+  cli_abort_property_ = new BoolProperty("Abort CLI", false, "Aborts CLI script.", this);
 
   pose_msg_.header.frame_id = "world";
   pose_msg_.child_frame_id = "rviz_view";
+  abort_msg_.data = false;
   pub_pose_ = nh_.advertise<geometry_msgs::TransformStamped>("rviz/view_pose", 1);
+  pub_abort_ = nh_.advertise<std_msgs::Bool>("itm/cli/abort", 1);
 }
 
 void TalkingViewController::onInitialize()
@@ -104,6 +107,7 @@ void TalkingViewController::reset()
   distance_property_->setFloat( DISTANCE_START );
   focal_point_property_->setVector( Ogre::Vector3::ZERO );
   freeview_enabled_property_->setBool(true);
+  cli_abort_property_->setBool(false);
 }
 
 void TalkingViewController::handleMouseEvent(ViewportMouseEvent& event)
@@ -237,6 +241,8 @@ void TalkingViewController::update(float dt, float ros_dt)
 {
   FramePositionTrackingViewController::update( dt, ros_dt );
   updateCamera();
+  abort_msg_.data = cli_abort_property_->getBool();
+  pub_abort_.publish(abort_msg_);
 }
 
 void TalkingViewController::lookAt( const Ogre::Vector3& point )
