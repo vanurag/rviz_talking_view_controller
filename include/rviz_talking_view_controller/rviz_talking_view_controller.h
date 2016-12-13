@@ -37,6 +37,7 @@
 #include <ros/ros.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <std_msgs/Bool.h>
+#include "rviz_talking_view_controller/CLIEngine.h"
 
 #include "rviz/frame_position_tracking_view_controller.h"
 
@@ -108,7 +109,7 @@ protected:
    * @param position Position to calculate the pitch/yaw for
    */
   void calculatePitchYawFromPosition( const Ogre::Vector3& position );
-  void publishViewPose();
+  void updateRvizViewPose();
 
   virtual void updateCamera();
 
@@ -118,14 +119,13 @@ protected:
   VectorProperty* focal_point_property_; ///< The point around which the camera "orbits".
 
   ros::NodeHandle nh_;
-  geometry_msgs::TransformStamped pose_msg_;
-  std_msgs::Bool abort_msg_;
-  ros::Publisher pub_pose_;
-  ros::Publisher pub_abort_;
+  CLIEngine cli_engine_msg_;
+  ros::Publisher pub_cli_;
 
   Shape* focal_shape_;
   bool dragging_;
   rviz::BoolProperty* freeview_enabled_property_, *cli_abort_property_;
+  rviz::BoolProperty* cli_pause_property, *cli_save_mesh_property;
 };
 
 }

@@ -74,12 +74,14 @@ TalkingViewController::TalkingViewController()
 
   freeview_enabled_property_ = new BoolProperty("Freeview Enabled", true, "Enables mouse control of the reconstruction view.", this);
   cli_abort_property_ = new BoolProperty("Abort CLI", false, "Aborts CLI script.", this);
+  cli_pause_property = new BoolProperty("Pause CLI", true, "Pauses CLI script.", this);
+  cli_save_mesh_property = new BoolProperty("Save Mesh", false, "Saves scene as mesh.", this);
 
-  pose_msg_.header.frame_id = "world";
-  pose_msg_.child_frame_id = "rviz_view";
-  abort_msg_.data = false;
-  pub_pose_ = nh_.advertise<geometry_msgs::TransformStamped>("rviz/view_pose", 1);
-  pub_abort_ = nh_.advertise<std_msgs::Bool>("itm/cli/abort", 1);
+  cli_engine_msg_.rviz_pose.header.frame_id = "world";
+  cli_engine_msg_.rviz_pose.child_frame_id = "rviz_view";
+  cli_engine_msg_.abort = false;
+  cli_engine_msg_.freeview_enabled = true;
+  pub_cli_ = nh_.advertise<CLIEngine>("itm/cli/config", 1);
 }
 
 void TalkingViewController::onInitialize()
@@ -108,6 +110,8 @@ void TalkingViewController::reset()
   focal_point_property_->setVector( Ogre::Vector3::ZERO );
   freeview_enabled_property_->setBool(true);
   cli_abort_property_->setBool(false);
+  cli_pause_property->setBool(true);
+  cli_save_mesh_property->setBool(false);
 }
 
 void TalkingViewController::handleMouseEvent(ViewportMouseEvent& event)
@@ -241,8 +245,13 @@ void TalkingViewController::update(float dt, float ros_dt)
 {
   FramePositionTrackingViewController::update( dt, ros_dt );
   updateCamera();
-  abort_msg_.data = cli_abort_property_->getBool();
-  pub_abort_.publish(abort_msg_);
+  cli_engine_msg_.abort = cli_abort_property_->getBool();
+  cli_engine_msg_.pause = cli_pause_property->getBool();
+  cli_engine_msg_.save_mesh = cli_save_mesh_property->getBool();
+  cli_engine_msg_.freeview_enabled = freeview_enabled_property_->getBool();
+  pub_cli_.publish(cli_engine_msg_);
+  // default back to not saving mesh
+  cli_save_mesh_property->setBool(false);
 }
 
 void TalkingViewController::lookAt( const Ogre::Vector3& point )
@@ -279,34 +288,32 @@ void TalkingViewController::updateCamera()
 
   focal_shape_->setPosition( focal_point );
 
-  publishViewPose();
+  updateRvizViewPose();
 }
 
-void TalkingViewController::publishViewPose()
+void TalkingViewController::updateRvizViewPose()
 {
-  pose_msg_.header.stamp = ros::Time::now();
+  cli_engine_msg_.rviz_pose.header.stamp = ros::Time::now();
 
   Ogre::Quaternion cam_orientation = camera_->getOrientation();
   Ogre::Vector3 cam_pos = camera_->getPosition();
   if (freeview_enabled_property_->getBool()) {
-    pose_msg_.transform.translation.x = cam_pos.x;
-    pose_msg_.transform.translation.y = cam_pos.y;
-    pose_msg_.transform.translation.z = cam_pos.z;
-    pose_msg_.transform.rotation.x = cam_orientation.x;
-    pose_msg_.transform.rotation.y = cam_orientation.y;
-    pose_msg_.transform.rotation.z = cam_orientation.z;
-    pose_msg_.transform.rotation.w = cam_orientation.w;
+    cli_engine_msg_.rviz_pose.transform.translation.x = cam_pos.x;
+    cli_engine_msg_.rviz_pose.transform.translation.y = cam_pos.y;
+    cli_engine_msg_.rviz_pose.transform.translation.z = cam_pos.z;
+    cli_engine_msg_.rviz_pose.transform.rotation.x = cam_orientation.x;
+    cli_engine_msg_.rviz_pose.transform.rotation.y = cam_orientation.y;
+    cli_engine_msg_.rviz_pose.transform.rotation.z = cam_orientation.z;
+    cli_engine_msg_.rviz_pose.transform.rotation.w = cam_orientation.w;
   } else {
-    pose_msg_.transform.translation.x = 0;
-    pose_msg_.transform.translation.y = 0;
-    pose_msg_.transform.translation.z = 0;
-    pose_msg_.transform.rotation.x = 0;
-    pose_msg_.transform.rotation.y = 0;
-    pose_msg_.transform.rotation.z = 0;
-    pose_msg_.transform.rotation.w = 0;
+    cli_engine_msg_.rviz_pose.transform.translation.x = 0;
+    cli_engine_msg_.rviz_pose.transform.translation.y = 0;
+    cli_engine_msg_.rviz_pose.transform.translation.z = 0;
+    cli_engine_msg_.rviz_pose.transform.rotation.x = 0;
+    cli_engine_msg_.rviz_pose.transform.rotation.y = 0;
+    cli_engine_msg_.rviz_pose.transform.rotation.z = 0;
+    cli_engine_msg_.rviz_pose.transform.rotation.w = 0;
   }
-
-  pub_pose_.publish(pose_msg_);
 }
 
 void TalkingViewController::yaw( float angle )
