@@ -72,10 +72,12 @@ TalkingViewController::TalkingViewController()
 
   focal_point_property_ = new VectorProperty( "Focal Point", Ogre::Vector3::ZERO, "The center point which the camera orbits.", this );
 
-  freeview_enabled_property_ = new BoolProperty("Freeview Enabled", true, "Enables mouse control of the reconstruction view.", this);
-  cli_abort_property_ = new BoolProperty("Abort CLI", false, "Aborts CLI script.", this);
-  cli_pause_property = new BoolProperty("Pause CLI", true, "Pauses CLI script.", this);
-  cli_save_mesh_property = new BoolProperty("Save Mesh", false, "Saves scene as mesh.", this);
+  freeview_enabled_property_ = new BoolProperty("CLI: Freeview Enabled", true, "Enables mouse control of the reconstruction view.", this);
+  cli_abort_property_ = new BoolProperty("CLI: Abort", false, "Aborts CLI script.", this);
+  cli_pause_property = new BoolProperty("CLI: Pause", true, "Pauses CLI script.", this);
+  cli_save_mesh_property = new BoolProperty("CLI: Save Mesh", false, "Saves scene as mesh.", this);
+  cli_visualize_scene_property = new BoolProperty("CLI: Visualize", true, "Visualizes scene being reconstructed.", this);
+  cli_update_ref_point_property = new BoolProperty("CLI: Update Reference Point", false, "Chooses current point being pointed as reference point to publish.", this);
 
   cli_engine_msg_.rviz_pose.header.frame_id = "world";
   cli_engine_msg_.rviz_pose.child_frame_id = "rviz_view";
@@ -112,6 +114,8 @@ void TalkingViewController::reset()
   cli_abort_property_->setBool(false);
   cli_pause_property->setBool(true);
   cli_save_mesh_property->setBool(false);
+  cli_visualize_scene_property->setBool(true);
+  cli_update_ref_point_property->setBool(false);
 }
 
 void TalkingViewController::handleMouseEvent(ViewportMouseEvent& event)
@@ -248,10 +252,13 @@ void TalkingViewController::update(float dt, float ros_dt)
   cli_engine_msg_.abort = cli_abort_property_->getBool();
   cli_engine_msg_.pause = cli_pause_property->getBool();
   cli_engine_msg_.save_mesh = cli_save_mesh_property->getBool();
+  cli_engine_msg_.visualize_scene = cli_visualize_scene_property->getBool();
   cli_engine_msg_.freeview_enabled = freeview_enabled_property_->getBool();
+  cli_engine_msg_.update_reference_point = cli_update_ref_point_property->getBool();
   pub_cli_.publish(cli_engine_msg_);
-  // default back to not saving mesh
+  // default back to not saving mesh (acts like a button)
   cli_save_mesh_property->setBool(false);
+  cli_update_ref_point_property->setBool(false);
 }
 
 void TalkingViewController::lookAt( const Ogre::Vector3& point )

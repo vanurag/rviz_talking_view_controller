@@ -3,3 +3,5 @@ bool freeview_enabled
 bool abort
 bool pause
 bool save_mesh
+bool visualize_scene
+bool update_reference_point

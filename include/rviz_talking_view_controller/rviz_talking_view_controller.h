@@ -125,7 +125,8 @@ protected:
   Shape* focal_shape_;
   bool dragging_;
   rviz::BoolProperty* freeview_enabled_property_, *cli_abort_property_;
-  rviz::BoolProperty* cli_pause_property, *cli_save_mesh_property;
+  rviz::BoolProperty* cli_pause_property, *cli_save_mesh_property, *cli_visualize_scene_property;
+  rviz::BoolProperty* cli_update_ref_point_property;
 };
 
 }
