@@ -78,6 +78,7 @@ TalkingViewController::TalkingViewController()
   cli_save_mesh_property = new BoolProperty("CLI: Save Mesh", false, "Saves scene as mesh.", this);
   cli_visualize_scene_property = new BoolProperty("CLI: Visualize", true, "Visualizes scene being reconstructed.", this);
   cli_update_ref_point_property = new BoolProperty("CLI: Update Reference Point", false, "Chooses current point being pointed as reference point to publish.", this);
+  cli_update_ref_pattern_property = new BoolProperty("CLI: Update Reference Pattern", false, "Projects point pattern onto surface and generates reference points.", this);
   cli_stop_integration_property = new BoolProperty("CLI: Stop Depth Integration", false, "Stops fusing additional depth info. Only tracking performed.", this);
 
   cli_engine_msg_.rviz_pose.header.frame_id = "world";
@@ -117,6 +118,7 @@ void TalkingViewController::reset()
   cli_save_mesh_property->setBool(false);
   cli_visualize_scene_property->setBool(true);
   cli_update_ref_point_property->setBool(false);
+  cli_update_ref_pattern_property->setBool(false);
   cli_stop_integration_property->setBool(false);
 }
 
@@ -257,11 +259,13 @@ void TalkingViewController::update(float dt, float ros_dt)
   cli_engine_msg_.visualize_scene = cli_visualize_scene_property->getBool();
   cli_engine_msg_.freeview_enabled = freeview_enabled_property_->getBool();
   cli_engine_msg_.update_reference_point = cli_update_ref_point_property->getBool();
+  cli_engine_msg_.update_reference_pattern = cli_update_ref_pattern_property->getBool();
   cli_engine_msg_.stop_integration = cli_stop_integration_property->getBool();
   pub_cli_.publish(cli_engine_msg_);
   // default back to not saving mesh (acts like a button)
   cli_save_mesh_property->setBool(false);
   cli_update_ref_point_property->setBool(false);
+  cli_update_ref_pattern_property->setBool(false);
 }
 
 void TalkingViewController::lookAt( const Ogre::Vector3& point )
