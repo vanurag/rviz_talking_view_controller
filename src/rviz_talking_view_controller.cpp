@@ -77,9 +77,8 @@ TalkingViewController::TalkingViewController()
   cli_pause_property = new BoolProperty("CLI: Pause", true, "Pauses CLI script.", this);
   cli_save_mesh_property = new BoolProperty("CLI: Save Mesh", false, "Saves scene as mesh.", this);
   cli_visualize_scene_property = new BoolProperty("CLI: Visualize", true, "Visualizes scene being reconstructed.", this);
-  cli_visualize_depth_property = new BoolProperty("CLI: Visualize Depth", false, "Visualizes current depth image.", this);
-  cli_update_ref_point_property = new BoolProperty("CLI: Update Reference Point", false, "Chooses current point being pointed as reference point to publish.", this);
   cli_stop_integration_property = new BoolProperty("CLI: Stop Depth Integration", false, "Stops fusing additional depth info. Only tracking performed.", this);
+  cli_relocalize_property = new BoolProperty("CLI: Relocalize", false, "Triggers the relocalization script.", this);
 
   cli_engine_msg_.rviz_pose.header.frame_id = "world";
   cli_engine_msg_.rviz_pose.child_frame_id = "rviz_view";
@@ -117,9 +116,8 @@ void TalkingViewController::reset()
   cli_pause_property->setBool(true);
   cli_save_mesh_property->setBool(false);
   cli_visualize_scene_property->setBool(true);
-  cli_visualize_depth_property->setBool(false);
-  cli_update_ref_point_property->setBool(false);
   cli_stop_integration_property->setBool(false);
+  cli_relocalize_property->setBool(false);
 }
 
 void TalkingViewController::handleMouseEvent(ViewportMouseEvent& event)
@@ -257,14 +255,13 @@ void TalkingViewController::update(float dt, float ros_dt)
   cli_engine_msg_.pause = cli_pause_property->getBool();
   cli_engine_msg_.save_mesh = cli_save_mesh_property->getBool();
   cli_engine_msg_.visualize_scene = cli_visualize_scene_property->getBool();
-  cli_engine_msg_.visualize_depth = cli_visualize_depth_property->getBool();
   cli_engine_msg_.freeview_enabled = freeview_enabled_property_->getBool();
-  cli_engine_msg_.update_reference_point = cli_update_ref_point_property->getBool();
   cli_engine_msg_.stop_integration = cli_stop_integration_property->getBool();
+  cli_engine_msg_.relocalize = cli_relocalize_property->getBool();
   pub_cli_.publish(cli_engine_msg_);
   // default back to not saving mesh (acts like a button)
   cli_save_mesh_property->setBool(false);
-  cli_update_ref_point_property->setBool(false);
+  cli_relocalize_property->setBool(false);
 }
 
 void TalkingViewController::lookAt( const Ogre::Vector3& point )
