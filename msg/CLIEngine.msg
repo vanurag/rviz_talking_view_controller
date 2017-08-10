@@ -6,3 +6,5 @@ bool save_mesh
 bool visualize_scene
 bool stop_integration
 bool relocalize
+bool save_session
+bool load_session

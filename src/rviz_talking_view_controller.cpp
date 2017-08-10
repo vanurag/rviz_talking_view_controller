@@ -79,6 +79,8 @@ TalkingViewController::TalkingViewController()
   cli_visualize_scene_property = new BoolProperty("CLI: Visualize", true, "Visualizes scene being reconstructed.", this);
   cli_stop_integration_property = new BoolProperty("CLI: Stop Depth Integration", false, "Stops fusing additional depth info. Only tracking performed.", this);
   cli_relocalize_property = new BoolProperty("CLI: Relocalize", false, "Triggers the relocalization script.", this);
+  cli_save_session_property = new BoolProperty("CLI: Save Session", false, "Saves the current session.", this);
+  cli_load_session_property = new BoolProperty("CLI: Load Session", false, "Loads the saved session from disk.", this);
 
   cli_engine_msg_.rviz_pose.header.frame_id = "world";
   cli_engine_msg_.rviz_pose.child_frame_id = "rviz_view";
@@ -118,6 +120,8 @@ void TalkingViewController::reset()
   cli_visualize_scene_property->setBool(true);
   cli_stop_integration_property->setBool(false);
   cli_relocalize_property->setBool(false);
+  cli_save_session_property->setBool(false);
+  cli_load_session_property->setBool(false);
 }
 
 void TalkingViewController::handleMouseEvent(ViewportMouseEvent& event)
@@ -258,10 +262,14 @@ void TalkingViewController::update(float dt, float ros_dt)
   cli_engine_msg_.freeview_enabled = freeview_enabled_property_->getBool();
   cli_engine_msg_.stop_integration = cli_stop_integration_property->getBool();
   cli_engine_msg_.relocalize = cli_relocalize_property->getBool();
+  cli_engine_msg_.save_session = cli_save_session_property->getBool();
+  cli_engine_msg_.load_session = cli_load_session_property->getBool();
   pub_cli_.publish(cli_engine_msg_);
   // default back to not saving mesh (acts like a button)
   cli_save_mesh_property->setBool(false);
   cli_relocalize_property->setBool(false);
+  cli_save_session_property->setBool(false);
+  cli_load_session_property->setBool(false);
 }
 
 void TalkingViewController::lookAt( const Ogre::Vector3& point )
