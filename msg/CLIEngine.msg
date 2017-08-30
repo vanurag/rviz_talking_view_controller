@@ -7,3 +7,6 @@ bool visualize_scene
 bool update_reference_point
 bool update_reference_pattern
 bool stop_integration
+bool relocalize
+bool save_session
+bool load_session
