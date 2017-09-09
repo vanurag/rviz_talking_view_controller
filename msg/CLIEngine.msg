@@ -10,3 +10,4 @@ bool stop_integration
 bool relocalize
 bool save_session
 bool load_session
+bool save_waypoints
