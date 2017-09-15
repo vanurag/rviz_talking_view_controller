@@ -127,7 +127,7 @@ protected:
   rviz::BoolProperty* freeview_enabled_property_, *cli_abort_property_;
   rviz::BoolProperty* cli_pause_property, *cli_save_mesh_property, *cli_visualize_scene_property;
   rviz::BoolProperty* cli_update_ref_point_property, *cli_update_ref_pattern_property, *cli_stop_integration_property;
-  rviz::BoolProperty* cli_relocalize_property, *cli_save_session_property, *cli_load_session_property, *cli_save_waypoints_property;
+  rviz::BoolProperty* cli_relocalize_property, *cli_save_session_property, *cli_load_session_property, *cli_save_waypoints_property, *cli_load_waypoints_property;
 };
 
 }

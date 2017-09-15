@@ -11,3 +11,4 @@ bool relocalize
 bool save_session
 bool load_session
 bool save_waypoints
+bool load_waypoints

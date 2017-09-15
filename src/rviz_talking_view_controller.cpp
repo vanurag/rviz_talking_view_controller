@@ -84,6 +84,7 @@ TalkingViewController::TalkingViewController()
   cli_save_session_property = new BoolProperty("CLI: Save Session", false, "Saves the current session.", this);
   cli_load_session_property = new BoolProperty("CLI: Load Session", false, "Loads the saved session from disk.", this);
   cli_save_waypoints_property = new BoolProperty("CLI: Save Waypoints", false, "Saves the MAV waypoints to disk.", this);
+  cli_load_waypoints_property = new BoolProperty("CLI: Load Waypoints", false, "Load the MAV waypoints to disk.", this);
 
   cli_engine_msg_.rviz_pose.header.frame_id = "world";
   cli_engine_msg_.rviz_pose.child_frame_id = "rviz_view";
@@ -128,6 +129,7 @@ void TalkingViewController::reset()
   cli_save_session_property->setBool(false);
   cli_load_session_property->setBool(false);
   cli_save_waypoints_property->setBool(false);
+  cli_load_waypoints_property->setBool(false);
 }
 
 void TalkingViewController::handleMouseEvent(ViewportMouseEvent& event)
@@ -273,6 +275,7 @@ void TalkingViewController::update(float dt, float ros_dt)
   cli_engine_msg_.save_session = cli_save_session_property->getBool();
   cli_engine_msg_.load_session = cli_load_session_property->getBool();
   cli_engine_msg_.save_waypoints = cli_save_waypoints_property->getBool();
+  cli_engine_msg_.load_waypoints = cli_load_waypoints_property->getBool();
   pub_cli_.publish(cli_engine_msg_);
   // default back to not saving mesh (acts like a button)
   cli_save_mesh_property->setBool(false);
@@ -282,6 +285,7 @@ void TalkingViewController::update(float dt, float ros_dt)
   cli_save_session_property->setBool(false);
   cli_load_session_property->setBool(false);
   cli_save_waypoints_property->setBool(false);
+  cli_load_waypoints_property->setBool(false);
 }
 
 void TalkingViewController::lookAt( const Ogre::Vector3& point )
