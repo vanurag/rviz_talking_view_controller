@@ -31,8 +31,7 @@
 #define RVIZ_TALKING_VIEW_CONTROLLER_H
 
 #include <OgreVector3.h>
-
-#include <QCursor>
+#include <OgreQuaternion.h>
 
 #include <ros/ros.h>
 #include <geometry_msgs/TransformStamped.h>
@@ -52,20 +51,7 @@ namespace rviz_talking_view_controller
 {
 
 using namespace rviz;
-/**
- * \brief An orbital camera, controlled by yaw, pitch, distance, and focal point
- *
- * This camera is based on the equation of a sphere in spherical coordinates:
- @verbatim
- x = d*cos(theta)sin(phi)
- y = d*cos(phi)
- z = d*sin(theta)sin(phi)
- @endverbatim
- * Where:<br>
- * d = #distance_<br>
- * theta = #yaw_<br>
- * phi = #pitch_
- */
+/** @brief A first-person camera, controlled by yaw, pitch, and position. */
 class TalkingViewController: public FramePositionTrackingViewController
 {
 Q_OBJECT
@@ -78,13 +64,9 @@ public:
    * and camera_ are set. */
   virtual void onInitialize();
 
-  /**
-   * \brief Move in/out from the focal point, ie. adjust #distance_ by amount
-   * @param amount The distance to move.  Positive amount moves towards the focal point, negative moves away
-   */
-  void zoom( float amount );
   void yaw( float angle );
   void pitch( float angle );
+  void roll( float angle );
   void move( float x, float y, float z );
 
   virtual void handleMouseEvent(ViewportMouseEvent& evt);
@@ -100,30 +82,28 @@ public:
    * @a source_view must return a valid @c Ogre::Camera* from getCamera(). */
   virtual void mimic( ViewController* source_view );
 
-protected:
   virtual void update(float dt, float ros_dt);
+
+protected:
   virtual void onTargetFrameChanged(const Ogre::Vector3& old_reference_position, const Ogre::Quaternion& old_reference_orientation);
 
-  /**
-   * \brief Calculates pitch and yaw values given a new position and the current focal point
-   * @param position Position to calculate the pitch/yaw for
-   */
-  void calculatePitchYawFromPosition( const Ogre::Vector3& position );
+  void setPropertiesFromCamera( Ogre::Camera* source_camera );
+
   void updateRvizViewPose();
 
-  virtual void updateCamera();
+  void updateCamera();
 
-  FloatProperty* yaw_property_;                         ///< The camera's yaw (rotation around the y-axis), in radians
-  FloatProperty* pitch_property_;                       ///< The camera's pitch (rotation around the x-axis), in radians
-  FloatProperty* distance_property_;                    ///< The camera's distance from the focal point
-  VectorProperty* focal_point_property_; ///< The point around which the camera "orbits".
+  Ogre::Quaternion getOrientation();
+
+  FloatProperty* yaw_property_;
+  FloatProperty* pitch_property_;
+  FloatProperty* roll_property_;
+  VectorProperty* position_property_;
 
   ros::NodeHandle nh_;
   CLIEngine cli_engine_msg_;
   ros::Publisher pub_cli_;
 
-  Shape* focal_shape_;
-  bool dragging_;
   rviz::BoolProperty* freeview_enabled_property_, *cli_abort_property_;
   rviz::BoolProperty* cli_pause_property, *cli_save_mesh_property, *cli_visualize_scene_property;
   rviz::BoolProperty* cli_update_ref_point_property, *cli_update_ref_pattern_property, *cli_stop_integration_property;
