@@ -88,7 +88,7 @@ TalkingViewController::TalkingViewController()
   cli_save_waypoints_property = new BoolProperty("CLI: Save Waypoints", false, "Saves the MAV waypoints to disk.", this);
   cli_load_waypoints_property = new BoolProperty("CLI: Load Waypoints", false, "Load the MAV waypoints to disk.", this);
 
-  cli_engine_msg_.rviz_pose.header.frame_id = "world";
+  cli_engine_msg_.rviz_pose.header.frame_id = subProp("Target Frame")->getValue().toString().toStdString();
   cli_engine_msg_.rviz_pose.child_frame_id = "rviz_view";
   cli_engine_msg_.abort = false;
   cli_engine_msg_.freeview_enabled = true;
@@ -255,6 +255,7 @@ void TalkingViewController::lookAt( const Ogre::Vector3& point )
 
 void TalkingViewController::onTargetFrameChanged(const Ogre::Vector3& old_reference_position, const Ogre::Quaternion& old_reference_orientation)
 {
+  cli_engine_msg_.rviz_pose.header.frame_id = subProp("Target Frame")->getValue().toString().toStdString();
   position_property_->add( old_reference_position - reference_position_ );
 }
 
