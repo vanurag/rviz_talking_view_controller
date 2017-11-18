@@ -49,34 +49,36 @@
 
 #include "rviz_talking_view_controller/rviz_talking_view_controller.h"
 
-static const float PITCH_START = Ogre::Math::HALF_PI / 2.0;
-static const float YAW_START = Ogre::Math::HALF_PI * 0.5;
-static const float DISTANCE_START = 10;
-
 namespace rviz_talking_view_controller
 {
 
 using namespace rviz;
 
+static const Ogre::Quaternion ROBOT_TO_CAMERA_ROTATION =
+    Ogre::Quaternion( Ogre::Radian( -Ogre::Math::HALF_PI ), Ogre::Vector3::UNIT_Y ) *
+    Ogre::Quaternion( Ogre::Radian( -Ogre::Math::HALF_PI ), Ogre::Vector3::UNIT_Z );
+
 TalkingViewController::TalkingViewController()
-  : nh_(""), dragging_( false )
+  : nh_("")
 {
-  distance_property_ = new FloatProperty( "Distance", DISTANCE_START, "Distance from the focal point.", this );
-  distance_property_->setMin( 0.01 );
+  yaw_property_ = new FloatProperty( "Yaw", 0, "Rotation of the camera around the Y axis.", this );
+  pitch_property_ = new FloatProperty( "Pitch", 0, "How much the camera is tipped downward.", this );
+  roll_property_ = new FloatProperty( "Roll", Ogre::Math::HALF_PI, "Rotation of the camera around the Z axis.", this );
 
-  yaw_property_ = new FloatProperty( "Yaw", YAW_START, "Rotation of the camera around the Z (up) axis.", this );
+  pitch_property_->setMax( 0.001 );
+  pitch_property_->setMin( -Ogre::Math::PI + 0.001 );
+  yaw_property_->setMax( Ogre::Math::HALF_PI - 0.001 );
+  yaw_property_->setMin( -yaw_property_->getMax() );
+  roll_property_->setMin( 0.001 );
+  roll_property_->setMax( Ogre::Math::PI - 0.001 );
 
-  pitch_property_ = new FloatProperty( "Pitch", PITCH_START, "How much the camera is tipped downward.", this );
-  pitch_property_->setMax( Ogre::Math::HALF_PI - 0.001 );
-  pitch_property_->setMin( -pitch_property_->getMax() );
+  position_property_ = new VectorProperty( "Position", Ogre::Vector3( 0, 0, -10 ), "Position of the camera.", this );
 
-  focal_point_property_ = new VectorProperty( "Focal Point", Ogre::Vector3::ZERO, "The center point which the camera orbits.", this );
-
-  freeview_enabled_property_ = new BoolProperty("CLI: Freeview Enabled", true, "Enables mouse control of the reconstruction view.", this);
+  freeview_enabled_property_ = new BoolProperty("CLI: Freeview Enabled", false, "Enables mouse control of the reconstruction view.", this);
   cli_abort_property_ = new BoolProperty("CLI: Abort", false, "Aborts CLI script.", this);
   cli_pause_property = new BoolProperty("CLI: Pause", true, "Pauses CLI script.", this);
   cli_save_mesh_property = new BoolProperty("CLI: Save Mesh", false, "Saves scene as mesh.", this);
-  cli_visualize_scene_property = new BoolProperty("CLI: Visualize", true, "Visualizes scene being reconstructed.", this);
+  cli_visualize_scene_property = new BoolProperty("CLI: Visualize", false, "Visualizes scene being reconstructed.", this);
   cli_update_ref_point_property = new BoolProperty("CLI: Update Reference Point", false, "Chooses current point being pointed as reference point to publish.", this);
   cli_update_ref_pattern_property = new BoolProperty("CLI: Update Reference Pattern", false, "Projects point pattern onto surface and generates reference points.", this);
   cli_stop_integration_property = new BoolProperty("CLI: Stop Depth Integration", false, "Stops fusing additional depth info. Only tracking performed.", this);
@@ -96,167 +98,123 @@ TalkingViewController::TalkingViewController()
 void TalkingViewController::onInitialize()
 {
   FramePositionTrackingViewController::onInitialize();
-
   camera_->setProjectionType( Ogre::PT_PERSPECTIVE );
-
-  focal_shape_ = new Shape(Shape::Sphere, context_->getSceneManager(), target_scene_node_);
-  focal_shape_->setScale(Ogre::Vector3(0.05f, 0.05f, 0.01f));
-  focal_shape_->setColor(1.0f, 1.0f, 0.0f, 0.5f);
-  focal_shape_->getRootNode()->setVisible(false);
 }
 
 TalkingViewController::~TalkingViewController()
 {
-  delete focal_shape_;
 }
 
 void TalkingViewController::reset()
 {
-  dragging_ = false;
-  yaw_property_->setFloat( YAW_START );
-  pitch_property_->setFloat( PITCH_START );
-  distance_property_->setFloat( DISTANCE_START );
-  focal_point_property_->setVector( Ogre::Vector3::ZERO );
-  freeview_enabled_property_->setBool(true);
-  cli_abort_property_->setBool(false);
-  cli_pause_property->setBool(true);
-  cli_save_mesh_property->setBool(false);
-  cli_visualize_scene_property->setBool(true);
-  cli_update_ref_point_property->setBool(false);
-  cli_update_ref_pattern_property->setBool(false);
-  cli_stop_integration_property->setBool(false);
-  cli_relocalize_property->setBool(false);
-  cli_save_session_property->setBool(false);
-  cli_load_session_property->setBool(false);
-  cli_save_waypoints_property->setBool(false);
-  cli_load_waypoints_property->setBool(false);
+  camera_->setPosition( Ogre::Vector3( 0, 0, -10 ));
+  lookAt( Ogre::Vector3(0, 0, 0) );
 }
 
 void TalkingViewController::handleMouseEvent(ViewportMouseEvent& event)
 {
   if ( event.shift() )
   {
-    setStatus( "<b>Left-Click:</b> Move X/Y.  <b>Right-Click:</b>: Move Z.  <b>Mouse Wheel:</b>: Zoom.  " );
+    setStatus( "<b>Left-Click:</b> Move X/Y.  <b>Right-Click:</b>: Move Z." );
   }
   else
   {
-    setStatus( "<b>Left-Click:</b> Rotate.  <b>Middle-Click:</b> Move X/Y.  <b>Right-Click/Mouse Wheel:</b>: Zoom.  <b>Shift</b>: More options." );
+    setStatus( "<b>Left-Click:</b> Rotate.  <b>Middle-Click:</b> Move X/Y.  <b>Right-Click:</b>: Zoom.  <b>Shift</b>: More options." );
   }
 
-  float distance = distance_property_->getFloat();
+  bool moved = false;
 
   int32_t diff_x = 0;
   int32_t diff_y = 0;
 
-  bool moved = false;
-
-  if( event.type == QEvent::MouseButtonPress )
-  {
-    focal_shape_->getRootNode()->setVisible(true);
-    moved = true;
-    dragging_ = true;
-  }
-  else if( event.type == QEvent::MouseButtonRelease )
-  {
-    focal_shape_->getRootNode()->setVisible(false);
-    moved = true;
-    dragging_ = false;
-  }
-  else if( dragging_ && event.type == QEvent::MouseMove )
+  if( event.type == QEvent::MouseMove )
   {
     diff_x = event.x - event.last_x;
     diff_y = event.y - event.last_y;
     moved = true;
   }
 
-  // regular left-button drag
   if( event.left() && !event.shift() )
   {
     setCursor( Rotate3D );
-    yaw( diff_x*0.005 );
-    pitch( -diff_y*0.005 );
+    if (event.control()) {
+      roll( diff_x*0.005 );
+    } else {
+      pitch( diff_y*0.005 );
+      yaw( diff_x*0.005 );
+    }
   }
-  // middle or shift-left drag
-  else if( event.middle() || (event.shift() && event.left()) )
+  else if( event.middle() || ( event.shift() && event.left() ))
   {
     setCursor( MoveXY );
-    float fovY = camera_->getFOVy().valueRadians();
-    float fovX = 2.0f * atan( tan( fovY / 2.0f ) * camera_->getAspectRatio() );
-
-    int width = camera_->getViewport()->getActualWidth();
-    int height = camera_->getViewport()->getActualHeight();
-
-    move( -((float)diff_x / (float)width) * distance * tan( fovX / 2.0f ) * 2.0f,
-          ((float)diff_y / (float)height) * distance * tan( fovY / 2.0f ) * 2.0f,
-          0.0f );
+    move( diff_x*0.01, -diff_y*0.01, 0.0f );
   }
   else if( event.right() )
   {
-    if( event.shift() )
-    {
-      // move in z direction
-      setCursor( MoveZ );
-      move(0.0f, 0.0f, diff_y * 0.1 * (distance / 10.0f));
-    }
-    else
-    {
-      // zoom
-      setCursor( Zoom );
-      zoom( -diff_y * 0.1 * (distance / 10.0f) );
-    }
+    setCursor( MoveZ );
+    move( 0.0f, 0.0f, diff_y*0.1 );
   }
   else
   {
     setCursor( event.shift() ? MoveXY : Rotate3D );
   }
 
-  moved = true;
-
-  if( event.wheel_delta != 0 )
+  if ( event.wheel_delta != 0 )
   {
     int diff = event.wheel_delta;
-    if( event.shift() )
-    {
-      move( 0, 0, -diff * 0.001 * distance );
-    }
-    else
-    {
-      zoom( diff * 0.001 * distance );
-    }
+    move( 0.0f, 0.0f, -diff * 0.01 );
 
     moved = true;
   }
 
-  if( moved )
+  if (moved)
   {
     context_->queueRender();
   }
 }
 
+void TalkingViewController::setPropertiesFromCamera( Ogre::Camera* source_camera )
+{
+  Ogre::Quaternion quat = source_camera->getOrientation() * ROBOT_TO_CAMERA_ROTATION.Inverse();
+  float yaw = quat.getRoll( false ).valueRadians(); // OGRE camera frame looks along -Z, so they call rotation around Z "roll".
+  float pitch = quat.getYaw( false ).valueRadians(); // OGRE camera frame has +Y as "up", so they call rotation around Y "yaw".
+  float roll = quat.getRoll( false ).valueRadians();
+
+  Ogre::Vector3 direction = quat * Ogre::Vector3::NEGATIVE_UNIT_Z;
+
+  if ( direction.dotProduct( Ogre::Vector3::NEGATIVE_UNIT_Z ) < 0 )
+  {
+    if ( pitch > Ogre::Math::HALF_PI )
+    {
+      pitch -= Ogre::Math::PI;
+    }
+    else if ( pitch < -Ogre::Math::HALF_PI )
+    {
+      pitch += Ogre::Math::PI;
+    }
+
+    yaw = -yaw;
+
+    if ( direction.dotProduct( Ogre::Vector3::UNIT_X ) < 0 )
+    {
+      yaw -= Ogre::Math::PI;
+    }
+    else
+    {
+      yaw += Ogre::Math::PI;
+    }
+  }
+
+  pitch_property_->setFloat( pitch );
+  yaw_property_->setFloat( yaw );
+  roll_property_->setFloat( roll );
+  position_property_->setVector( source_camera->getPosition() );
+}
+
 void TalkingViewController::mimic( ViewController* source_view )
 {
   FramePositionTrackingViewController::mimic( source_view );
-
-  Ogre::Camera* source_camera = source_view->getCamera();
-  Ogre::Vector3 position = source_camera->getPosition();
-  Ogre::Quaternion orientation = source_camera->getOrientation();
-
-  if( source_view->getClassId() == "rviz_talking_view_controller/Talking" )
-  {
-    // If I'm initializing from another instance of this same class, get the distance exactly.
-    distance_property_->setFloat( source_view->subProp( "Distance" )->getValue().toFloat() );
-  }
-  else
-  {
-    // Determine the distance from here to the reference frame, and use
-    // that as the distance our focal point should be at.
-    distance_property_->setFloat( position.length() );
-  }
-
-  Ogre::Vector3 direction = orientation * (Ogre::Vector3::NEGATIVE_UNIT_Z * distance_property_->getFloat() );
-  focal_point_property_->setVector( position + direction );
-
-  calculatePitchYawFromPosition( position );
+  setPropertiesFromCamera( source_view->getCamera() );
 }
 
 void TalkingViewController::update(float dt, float ros_dt)
@@ -290,37 +248,20 @@ void TalkingViewController::update(float dt, float ros_dt)
 
 void TalkingViewController::lookAt( const Ogre::Vector3& point )
 {
-  Ogre::Vector3 camera_position = camera_->getPosition();
-  focal_point_property_->setVector( target_scene_node_->getOrientation().Inverse() * (point - target_scene_node_->getPosition()) );
-  distance_property_->setFloat( focal_point_property_->getVector().distance( camera_position ));
-
-  calculatePitchYawFromPosition(camera_position);
+  camera_->lookAt( point );
+  setPropertiesFromCamera( camera_ );
+  roll(Ogre::Math::HALF_PI);
 }
 
 void TalkingViewController::onTargetFrameChanged(const Ogre::Vector3& old_reference_position, const Ogre::Quaternion& old_reference_orientation)
 {
-  focal_point_property_->add( old_reference_position - reference_position_ );
+  position_property_->add( old_reference_position - reference_position_ );
 }
 
 void TalkingViewController::updateCamera()
 {
-  float distance = distance_property_->getFloat();
-  float yaw = yaw_property_->getFloat();
-  float pitch = pitch_property_->getFloat();
-
-  Ogre::Vector3 focal_point = focal_point_property_->getVector();
-
-  float x = distance * cos( yaw ) * cos( pitch ) + focal_point.x;
-  float y = distance * sin( yaw ) * cos( pitch ) + focal_point.y;
-  float z = distance *              sin( pitch ) + focal_point.z;
-
-  Ogre::Vector3 pos( x, y, z );
-
-  camera_->setPosition(pos);
-  camera_->setFixedYawAxis(true, target_scene_node_->getOrientation() * Ogre::Vector3::UNIT_Z);
-  camera_->setDirection(target_scene_node_->getOrientation() * (focal_point - pos));
-
-  focal_shape_->setPosition( focal_point );
+  camera_->setOrientation( getOrientation() );
+  camera_->setPosition( position_property_->getVector() );
 
   updateRvizViewPose();
 }
@@ -352,29 +293,34 @@ void TalkingViewController::updateRvizViewPose()
 
 void TalkingViewController::yaw( float angle )
 {
-  yaw_property_->setFloat( mapAngleTo0_2Pi( yaw_property_->getFloat() - angle ));
+  yaw_property_->add( angle );
 }
 
 void TalkingViewController::pitch( float angle )
 {
-  pitch_property_->add( -angle );
+  pitch_property_->add( angle );
 }
 
-void TalkingViewController::calculatePitchYawFromPosition( const Ogre::Vector3& position )
+void TalkingViewController::roll( float angle )
 {
-  Ogre::Vector3 diff = position - focal_point_property_->getVector();
-  pitch_property_->setFloat( asin( diff.z / distance_property_->getFloat() ));
-  yaw_property_->setFloat( atan2( diff.y, diff.x ));
+  roll_property_->add( angle );
 }
 
-void TalkingViewController::zoom( float amount )
+Ogre::Quaternion TalkingViewController::getOrientation()
 {
-  distance_property_->add( -amount );
+  Ogre::Quaternion pitch, yaw, roll;
+
+  yaw.FromAngleAxis( Ogre::Radian( yaw_property_->getFloat() ), Ogre::Vector3::UNIT_X );
+  pitch.FromAngleAxis( Ogre::Radian( pitch_property_->getFloat() ), Ogre::Vector3::UNIT_Y );
+  roll.FromAngleAxis( Ogre::Radian( roll_property_->getFloat() ), Ogre::Vector3::UNIT_Z );
+
+  return roll* yaw * pitch * ROBOT_TO_CAMERA_ROTATION;
 }
 
 void TalkingViewController::move( float x, float y, float z )
 {
-  focal_point_property_->add( camera_->getOrientation() * Ogre::Vector3( x, y, z ));
+  Ogre::Vector3 translate( x, y, z );
+  position_property_->add( getOrientation() * translate );
 }
 
 } // end namespace rviz
