@@ -4,6 +4,7 @@ bool abort
 bool pause
 bool save_mesh
 bool visualize_scene
+bool visualize_mesh
 bool update_reference_point
 bool update_reference_pattern
 bool stop_integration
