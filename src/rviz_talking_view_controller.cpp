@@ -79,6 +79,7 @@ TalkingViewController::TalkingViewController()
   cli_pause_property = new BoolProperty("CLI: Pause", true, "Pauses CLI script.", this);
   cli_save_mesh_property = new BoolProperty("CLI: Save Mesh", false, "Saves scene as mesh.", this);
   cli_visualize_scene_property = new BoolProperty("CLI: Visualize", false, "Visualizes scene being reconstructed.", this);
+  cli_visualize_mesh_property = new BoolProperty("CLI: Visualize Mesh", false, "Visualizes scene being reconstructed as mesh.", this);
   cli_update_ref_point_property = new BoolProperty("CLI: Update Reference Point", false, "Chooses current point being pointed as reference point to publish.", this);
   cli_update_ref_pattern_property = new BoolProperty("CLI: Update Reference Pattern", false, "Projects point pattern onto surface and generates reference points.", this);
   cli_stop_integration_property = new BoolProperty("CLI: Stop Depth Integration", false, "Stops fusing additional depth info. Only tracking performed.", this);
@@ -152,7 +153,7 @@ void TalkingViewController::handleMouseEvent(ViewportMouseEvent& event)
   else if( event.right() )
   {
     setCursor( MoveZ );
-    move( 0.0f, 0.0f, diff_y*0.1 );
+    move( 0.0f, 0.0f, diff_y*0.001 );
   }
   else
   {
@@ -162,7 +163,7 @@ void TalkingViewController::handleMouseEvent(ViewportMouseEvent& event)
   if ( event.wheel_delta != 0 )
   {
     int diff = event.wheel_delta;
-    move( 0.0f, 0.0f, -diff * 0.01 );
+    move( 0.0f, 0.0f, -diff * 0.001 );
 
     moved = true;
   }
@@ -225,6 +226,7 @@ void TalkingViewController::update(float dt, float ros_dt)
   cli_engine_msg_.pause = cli_pause_property->getBool();
   cli_engine_msg_.save_mesh = cli_save_mesh_property->getBool();
   cli_engine_msg_.visualize_scene = cli_visualize_scene_property->getBool();
+  cli_engine_msg_.visualize_mesh = cli_visualize_mesh_property->getBool();
   cli_engine_msg_.freeview_enabled = freeview_enabled_property_->getBool();
   cli_engine_msg_.update_reference_point = cli_update_ref_point_property->getBool();
   cli_engine_msg_.update_reference_pattern = cli_update_ref_pattern_property->getBool();
