@@ -72,11 +72,12 @@ TalkingViewController::TalkingViewController()
 
   focal_point_property_ = new VectorProperty( "Focal Point", Ogre::Vector3::ZERO, "The center point which the camera orbits.", this );
 
-  freeview_enabled_property_ = new BoolProperty("Freeview Enabled", true, "Enables mouse control of the reconstruction view.", this);
+  project_painting_property_ = new BoolProperty("Project Painting", true, "Projects painting pattern from this viewpoint and generates waypoints to execute it.", this);
 
   pose_msg_.header.frame_id = "world";
   pose_msg_.child_frame_id = "rviz_view";
   pub_pose_ = nh_.advertise<geometry_msgs::TransformStamped>("rviz/view_pose", 1);
+  pub_projection_command_ = nh_.advertise<std_msgs::Bool>("rviz/projection_command", 1);
 }
 
 void TalkingViewController::onInitialize()
@@ -103,7 +104,7 @@ void TalkingViewController::reset()
   pitch_property_->setFloat( PITCH_START );
   distance_property_->setFloat( DISTANCE_START );
   focal_point_property_->setVector( Ogre::Vector3::ZERO );
-  freeview_enabled_property_->setBool(true);
+  project_painting_property_->setBool(false);
 }
 
 void TalkingViewController::handleMouseEvent(ViewportMouseEvent& event)
@@ -237,6 +238,14 @@ void TalkingViewController::update(float dt, float ros_dt)
 {
   FramePositionTrackingViewController::update( dt, ros_dt );
   updateCamera();
+
+  if (project_painting_property_->getBool()) {
+    // publish command
+    std_msgs::Bool command;
+    command.data = true;
+    pub_projection_command_.publish(command);
+    project_painting_property_->setBool(false);
+  }
 }
 
 void TalkingViewController::lookAt( const Ogre::Vector3& point )
@@ -282,23 +291,13 @@ void TalkingViewController::publishViewPose()
 
   Ogre::Quaternion cam_orientation = camera_->getOrientation();
   Ogre::Vector3 cam_pos = camera_->getPosition();
-  if (freeview_enabled_property_->getBool()) {
-    pose_msg_.transform.translation.x = cam_pos.x;
-    pose_msg_.transform.translation.y = cam_pos.y;
-    pose_msg_.transform.translation.z = cam_pos.z;
-    pose_msg_.transform.rotation.x = cam_orientation.x;
-    pose_msg_.transform.rotation.y = cam_orientation.y;
-    pose_msg_.transform.rotation.z = cam_orientation.z;
-    pose_msg_.transform.rotation.w = cam_orientation.w;
-  } else {
-    pose_msg_.transform.translation.x = 0;
-    pose_msg_.transform.translation.y = 0;
-    pose_msg_.transform.translation.z = 0;
-    pose_msg_.transform.rotation.x = 0;
-    pose_msg_.transform.rotation.y = 0;
-    pose_msg_.transform.rotation.z = 0;
-    pose_msg_.transform.rotation.w = 0;
-  }
+  pose_msg_.transform.translation.x = cam_pos.x;
+  pose_msg_.transform.translation.y = cam_pos.y;
+  pose_msg_.transform.translation.z = cam_pos.z;
+  pose_msg_.transform.rotation.x = cam_orientation.x;
+  pose_msg_.transform.rotation.y = cam_orientation.y;
+  pose_msg_.transform.rotation.z = cam_orientation.z;
+  pose_msg_.transform.rotation.w = cam_orientation.w;
 
   pub_pose_.publish(pose_msg_);
 }

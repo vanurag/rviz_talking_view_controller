@@ -35,6 +35,7 @@
 #include <QCursor>
 
 #include <ros/ros.h>
+#include <std_msgs/Bool.h>
 #include <geometry_msgs/TransformStamped.h>
 
 #include "rviz/frame_position_tracking_view_controller.h"
@@ -118,11 +119,11 @@ protected:
 
   ros::NodeHandle nh_;
   geometry_msgs::TransformStamped pose_msg_;
-  ros::Publisher pub_pose_;
+  ros::Publisher pub_pose_, pub_projection_command_;
 
   Shape* focal_shape_;
   bool dragging_;
-  rviz::BoolProperty* freeview_enabled_property_;
+  rviz::BoolProperty* project_painting_property_;
 };
 
 }
