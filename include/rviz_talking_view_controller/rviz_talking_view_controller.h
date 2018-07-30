@@ -35,7 +35,7 @@
 #include <QCursor>
 
 #include <ros/ros.h>
-#include <std_msgs/Bool.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <geometry_msgs/TransformStamped.h>
 
 #include "rviz/frame_position_tracking_view_controller.h"

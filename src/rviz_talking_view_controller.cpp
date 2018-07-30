@@ -77,7 +77,7 @@ TalkingViewController::TalkingViewController()
   pose_msg_.header.frame_id = "world";
   pose_msg_.child_frame_id = "rviz_view";
   pub_pose_ = nh_.advertise<geometry_msgs::TransformStamped>("rviz/view_pose", 1);
-  pub_projection_command_ = nh_.advertise<std_msgs::Bool>("rviz/projection_command", 1);
+  pub_projection_command_ = nh_.advertise<geometry_msgs::Vector3Stamped>("rviz/projection_command", 1);
 }
 
 void TalkingViewController::onInitialize()
@@ -241,8 +241,8 @@ void TalkingViewController::update(float dt, float ros_dt)
 
   if (project_painting_property_->getBool()) {
     // publish command
-    std_msgs::Bool command;
-    command.data = true;
+    geometry_msgs::Vector3Stamped command;
+    command.header.stamp = ros::Time::now();
     pub_projection_command_.publish(command);
     project_painting_property_->setBool(false);
   }
@@ -290,7 +290,15 @@ void TalkingViewController::publishViewPose()
   pose_msg_.header.stamp = ros::Time::now();
 
   Ogre::Quaternion cam_orientation = camera_->getOrientation();
+  Ogre::Matrix3 cam_rot;
+  cam_orientation.ToRotationMatrix(cam_rot);
   Ogre::Vector3 cam_pos = camera_->getPosition();
+
+  // orientation correction. Wanted: X->right, Y->down, Z->out
+  Ogre::Matrix3 correction(1,0,0,0,-1,0,0,0,-1);
+  cam_rot = cam_rot * correction;
+  cam_orientation.FromRotationMatrix(cam_rot);
+
   pose_msg_.transform.translation.x = cam_pos.x;
   pose_msg_.transform.translation.y = cam_pos.y;
   pose_msg_.transform.translation.z = cam_pos.z;
