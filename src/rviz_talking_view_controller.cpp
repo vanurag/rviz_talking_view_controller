@@ -294,6 +294,11 @@ void TalkingViewController::publishViewPose()
   cam_orientation.ToRotationMatrix(cam_rot);
   Ogre::Vector3 cam_pos = camera_->getPosition();
 
+//  std::cout << "camera proj type: " << camera_->getProjectionType() << std::endl;
+//  std::cout << "camera proj matrix: " << camera_->getProjectionMatrix() << std::endl;
+//  std::cout << "camera focal length: " << camera_->getFocalLength() << std::endl;
+//  std::cout << "camera FOVy: " << camera_->getFOVy() << std::endl;
+
   // orientation correction. Wanted: X->right, Y->down, Z->out
   Ogre::Matrix3 correction(1,0,0,0,-1,0,0,0,-1);
   cam_rot = cam_rot * correction;
