@@ -9,10 +9,8 @@ find_package(Boost REQUIRED system filesystem)
 pkg_check_modules(OGRE OGRE)
 
 # Qt Stuff
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_AUTOMOC ON)
-find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui)
-set(QT_LIBRARIES Qt5::Widgets Qt5::Gui)
+find_package(Qt4 REQUIRED)
+include(${QT_USE_FILE})
 add_definitions(-DQT_NO_KEYWORDS)
 
 find_package(OpenGL REQUIRED)
@@ -26,6 +24,10 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
   )
+
+qt4_wrap_cpp(MOC_FILES
+  include/${PROJECT_NAME}/rviz_talking_view_controller.h
+)
 
 include_directories(include
                     ${catkin_INCLUDE_DIRS}
