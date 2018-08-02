@@ -35,7 +35,6 @@
 #include <QCursor>
 
 #include <ros/ros.h>
-#include <geometry_msgs/Vector3Stamped.h>
 #include <geometry_msgs/TransformStamped.h>
 
 #include "rviz/frame_position_tracking_view_controller.h"
@@ -123,7 +122,8 @@ protected:
 
   Shape* focal_shape_;
   bool dragging_;
-  rviz::BoolProperty* project_painting_property_;
+  rviz::BoolProperty* project_painting_property_; // projects painting from current view point
+  rviz::BoolProperty* reset_projection_propoerty_;  // resets such that projection can be performed again
 };
 
 }

@@ -49,6 +49,8 @@
 
 #include "rviz_talking_view_controller/rviz_talking_view_controller.h"
 
+#include <paintcopter_planning_msgs/paintProjectionCommand.h>
+
 static const float PITCH_START = Ogre::Math::HALF_PI / 2.0;
 static const float YAW_START = Ogre::Math::HALF_PI * 0.5;
 static const float DISTANCE_START = 10;
@@ -72,12 +74,13 @@ TalkingViewController::TalkingViewController()
 
   focal_point_property_ = new VectorProperty( "Focal Point", Ogre::Vector3::ZERO, "The center point which the camera orbits.", this );
 
-  project_painting_property_ = new BoolProperty("Project Painting", true, "Projects painting pattern from this viewpoint and generates waypoints to execute it.", this);
+  project_painting_property_ = new BoolProperty("Project Painting", false, "Projects painting pattern from this viewpoint and generates waypoints to execute it.", this);
+  reset_projection_propoerty_ = new BoolProperty("Reset projection", false, "Reset. Projection can be re-performed after this.", this);
 
   pose_msg_.header.frame_id = "world";
   pose_msg_.child_frame_id = "rviz_view";
   pub_pose_ = nh_.advertise<geometry_msgs::TransformStamped>("rviz/view_pose", 1);
-  pub_projection_command_ = nh_.advertise<geometry_msgs::Vector3Stamped>("rviz/projection_command", 1);
+  pub_projection_command_ = nh_.advertise<paintcopter_planning_msgs::paintProjectionCommand>("rviz/projection_command", 1);
 }
 
 void TalkingViewController::onInitialize()
@@ -105,6 +108,7 @@ void TalkingViewController::reset()
   distance_property_->setFloat( DISTANCE_START );
   focal_point_property_->setVector( Ogre::Vector3::ZERO );
   project_painting_property_->setBool(false);
+  reset_projection_propoerty_->setBool(false);
 }
 
 void TalkingViewController::handleMouseEvent(ViewportMouseEvent& event)
@@ -241,10 +245,22 @@ void TalkingViewController::update(float dt, float ros_dt)
 
   if (project_painting_property_->getBool()) {
     // publish command
-    geometry_msgs::Vector3Stamped command;
+    paintcopter_planning_msgs::paintProjectionCommand command;
     command.header.stamp = ros::Time::now();
+    command.project = true;
+    command.reset = false;
     pub_projection_command_.publish(command);
     project_painting_property_->setBool(false);
+  }
+
+  if (reset_projection_propoerty_->getBool()) {
+    // publish command
+    paintcopter_planning_msgs::paintProjectionCommand command;
+    command.header.stamp = ros::Time::now();
+    command.project = false;
+    command.reset = true;
+    pub_projection_command_.publish(command);
+    reset_projection_propoerty_->setBool(false);
   }
 }
 

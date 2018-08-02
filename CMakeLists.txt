@@ -18,6 +18,7 @@ find_package(OpenGL REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
  rviz
  pluginlib
+ paintcopter_planning_msgs
 )
 
 catkin_package(
