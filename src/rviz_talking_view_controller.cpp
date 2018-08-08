@@ -79,7 +79,9 @@ TalkingViewController::TalkingViewController()
 
   pose_msg_.header.frame_id = "world";
   pose_msg_.child_frame_id = "rviz_view";
+  info_msg_.header.frame_id = "world";
   pub_pose_ = nh_.advertise<geometry_msgs::TransformStamped>("rviz/view_pose", 1);
+  pub_info_ = nh_.advertise<sensor_msgs::CameraInfo>("rviz/cam_info", 1);
   pub_projection_command_ = nh_.advertise<paintcopter_planning_msgs::paintProjectionCommand>("rviz/projection_command", 1);
 }
 
@@ -304,16 +306,13 @@ void TalkingViewController::updateCamera()
 void TalkingViewController::publishViewPose()
 {
   pose_msg_.header.stamp = ros::Time::now();
+  info_msg_.header.stamp = ros::Time::now();
 
+  // Cam pose
   Ogre::Quaternion cam_orientation = camera_->getOrientation();
   Ogre::Matrix3 cam_rot;
   cam_orientation.ToRotationMatrix(cam_rot);
   Ogre::Vector3 cam_pos = camera_->getPosition();
-
-//  std::cout << "camera proj type: " << camera_->getProjectionType() << std::endl;
-//  std::cout << "camera proj matrix: " << camera_->getProjectionMatrix() << std::endl;
-//  std::cout << "camera focal length: " << camera_->getFocalLength() << std::endl;
-//  std::cout << "camera FOVy: " << camera_->getFOVy() << std::endl;
 
   // orientation correction. Wanted: X->right, Y->down, Z->out
   Ogre::Matrix3 correction(1,0,0,0,-1,0,0,0,-1);
@@ -329,6 +328,28 @@ void TalkingViewController::publishViewPose()
   pose_msg_.transform.rotation.w = cam_orientation.w;
 
   pub_pose_.publish(pose_msg_);
+
+  // Cam info
+  float fovY = camera_->getFOVy().valueRadians();
+  float fovX = 2.0f * atan( tan( fovY / 2.0f ) * camera_->getAspectRatio() );
+  int width = camera_->getViewport()->getActualWidth();
+  int height = camera_->getViewport()->getActualHeight();
+  float fx = width / (2.0 * tan(fovX/2));
+  float fy = height / (2.0 * tan(fovY/2));
+  std::cout << "camera proj type: " << camera_->getProjectionType() << std::endl;
+  std::cout << "camera proj matrix: " << camera_->getProjectionMatrix() << std::endl;
+  std::cout << "camera focal length: " << camera_->getFocalLength() << std::endl;
+  std::cout << "camera FOV: " << fovX << " " << fovY << std::endl;
+  std::cout << "camera dims: " << width << " " << height << std::endl;
+  std::cout << "camera focal: " << fx << " " << fy << std::endl;
+
+  info_msg_.width = width;
+  info_msg_.height = height;
+  info_msg_.R[0] = 1.0; info_msg_.R[4] = 1.0; info_msg_.R[8] = 1.0;
+  info_msg_.K[0] = fx; info_msg_.K[2] = width/2.0; info_msg_.K[4] = fy; info_msg_.K[5] = height/2.0; info_msg_.K[8] = 1.0;
+  info_msg_.P[0] = fx; info_msg_.P[2] = width/2.0; info_msg_.P[5] = fy; info_msg_.P[6] = height/2.0; info_msg_.P[10] = 1.0;
+
+  pub_info_.publish(info_msg_);
 }
 
 void TalkingViewController::yaw( float angle )
