@@ -36,6 +36,7 @@
 
 #include <ros/ros.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <sensor_msgs/CameraInfo.h>
 
 #include "rviz/frame_position_tracking_view_controller.h"
 
@@ -118,7 +119,8 @@ protected:
 
   ros::NodeHandle nh_;
   geometry_msgs::TransformStamped pose_msg_;
-  ros::Publisher pub_pose_, pub_projection_command_;
+  sensor_msgs::CameraInfo info_msg_;
+  ros::Publisher pub_pose_, pub_info_, pub_projection_command_;
 
   Shape* focal_shape_;
   bool dragging_;
