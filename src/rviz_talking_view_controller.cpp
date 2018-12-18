@@ -340,8 +340,8 @@ void TalkingViewController::publishViewPose()
 //  std::cout << "camera proj matrix: " << camera_->getProjectionMatrix() << std::endl;
 //  std::cout << "camera focal length: " << camera_->getFocalLength() << std::endl;
 //  std::cout << "camera FOV: " << fovX << " " << fovY << std::endl;
-//  std::cout << "camera dims: " << width << " " << height << std::endl;
-//  std::cout << "camera focal: " << fx << " " << fy << std::endl;
+  std::cout << "camera focal: " << fx << " " << fy << std::endl;
+  std::cout << "camera center: " << width/2.0 << " " << height/2.0 << std::endl;
 
   info_msg_.width = width;
   info_msg_.height = height;
